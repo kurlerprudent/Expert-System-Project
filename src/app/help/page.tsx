@@ -149,7 +149,7 @@ const HelpPage: React.FC = () => {
                   <div>
                     <p className="text-gray-600">Call us at</p>
                     <a href="tel:+1234567890" className="text-lg font-medium text-gray-800 hover:text-teal-600">
-                      +1 (234) 567-890
+                      +233 123 456 7890
                     </a>
                   </div>
                 </div>
@@ -161,7 +161,7 @@ const HelpPage: React.FC = () => {
                   <div>
                     <p className="text-gray-600">Email us at</p>
                     <a href="mailto:support@healthguard.com" className="text-lg font-medium text-gray-800 hover:text-teal-600">
-                      support@healthguard.com
+                      ourgroup@gmail.com
                     </a>
                   </div>
                 </div>
