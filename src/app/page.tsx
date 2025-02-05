@@ -79,7 +79,7 @@ const HomePage: React.FC = () => {
 
           {/* Animated Waves Decoration */}
           <motion.div 
-            className="mt-20 opacity-10"
+            className="mt-20 opacity-10 overflow-hidden"
             animate={{ x: [-100, 0, 100, 0] }}
             transition={{ duration: 8, repeat: Infinity }}
           >
