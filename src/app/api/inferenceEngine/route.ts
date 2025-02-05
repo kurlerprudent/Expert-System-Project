@@ -1,6 +1,23 @@
-// src/app/api/inferenceEngine/route.ts
 import { NextResponse } from 'next/server';
 import { supabase } from '@/libs/supabaseClient';
+
+// Define types for the expected data
+type Symptom = {
+  id: number;
+  name: string;
+};
+
+type ConditionSymptom = {
+  condition_id: number;
+};
+
+type TreatmentData = {
+  recommendation_mild: string;
+  recommendation_moderate: string;
+  recommendation_severe: string;
+  conditions: { name: string } | null;
+  drugs: { name: string } | null;
+};
 
 export async function POST(request: Request) {
   try {
@@ -24,35 +41,30 @@ export async function POST(request: Request) {
       .select('id, name')
       .in('name', selectedSymptoms);
 
-    if (symptomError) {
-      console.error('Symptom query error:', symptomError);
-      return NextResponse.json({ error: 'Failed to retrieve symptoms from database.' }, { status: 500 });
-    }
-    if (!symptomData || symptomData.length === 0) {
-      return NextResponse.json({ error: 'None of the provided symptoms were found in the database.' }, { status: 400 });
+    if (symptomError || !symptomData || symptomData.length === 0) {
+      return NextResponse.json({ error: 'Failed to retrieve symptoms or no symptoms found.' }, { status: 400 });
     }
 
     // Extract symptom IDs
     const symptomIDs = symptomData.map((s) => s.id);
 
-    // 2. Find conditions linked to symptoms
+    // 2. Find matching conditions from condition_symptoms
     const { data: conditionMatches, error: conditionMatchError } = await supabase
       .from('condition_symptoms')
       .select('condition_id')
       .in('symptom_id', symptomIDs);
 
-    if (conditionMatchError) {
-      console.error('Condition matching error:', conditionMatchError);
-      return NextResponse.json({ error: 'Failed to match conditions.' }, { status: 500 });
+    if (conditionMatchError || !conditionMatches || conditionMatches.length === 0) {
+      return NextResponse.json({ error: 'No matching condition found.' }, { status: 404 });
     }
 
-    // Find the best matching condition
+    // Count occurrences of each condition_id
     const conditionCountMap = new Map<number, number>();
     conditionMatches.forEach((row) => {
-      const count = conditionCountMap.get(row.condition_id) || 0;
-      conditionCountMap.set(row.condition_id, count + 1);
+      conditionCountMap.set(row.condition_id, (conditionCountMap.get(row.condition_id) || 0) + 1);
     });
 
+    // Get the condition with the highest count
     let bestConditionId: number | null = null;
     let bestCount = 0;
     for (const [conditionId, count] of conditionCountMap) {
@@ -63,44 +75,57 @@ export async function POST(request: Request) {
     }
 
     if (!bestConditionId) {
-      return NextResponse.json({ error: 'No matching condition found.' }, { status: 404 });
+      return NextResponse.json({ error: 'No best condition found.' }, { status: 404 });
     }
 
-        // 3. Get treatment recommendation (UPDATED)
-        const { data: treatmentData, error: treatmentError } = await supabase
-        .from('treatment_rules')
-        .select(`
-          recommendation_mild,
-          recommendation_moderate,
-          recommendation_severe,
-          condition_id,
-          drug_id,
-          conditions ( name ),
-          drugs ( name )
-        `)
-        .eq('condition_id', bestConditionId)
-        .single();
+    // 3. Retrieve the treatment recommendation for the identified condition
+  // 3. Retrieve the treatment recommendation for the identified condition
+const { data: treatmentData, error: treatmentError } = await supabase
+.from('treatment_rules')
+.select(`
+  recommendation_mild,
+  recommendation_moderate,
+  recommendation_severe,
+  conditions ( name ),
+  drugs ( name )
+`)
+.eq('condition_id', bestConditionId)
+.maybeSingle();
 
-      if (treatmentError) {
-        console.error('Treatment rule query error:', treatmentError);
-        return NextResponse.json({ error: 'Failed to retrieve treatment rule.' }, { status: 500 });
-      }
+console.log('Treatment Data:', JSON.stringify(treatmentData, null, 2));
 
-    // Determine which recommendation to return
-    let recommendation = '';
-    if (severity === 'severe') {
-      recommendation = treatmentData.recommendation_severe;
-    } else if (severity === 'moderate') {
-      recommendation = treatmentData.recommendation_moderate;
-    } else {
-      recommendation = treatmentData.recommendation_mild;
-    }
+if (treatmentError || !treatmentData) {
+return NextResponse.json({ error: 'No treatment data found for the identified condition.' }, { status: 404 });
+}
 
-    return NextResponse.json({
-      recommendation,
-      condition: treatmentData.conditions[0]?.name || 'Unknown',
-      drug: treatmentData.drugs[0]?.name || 'Unknown',
-    });
+// Select the appropriate recommendation based on severity
+let recommendation = '';
+switch (severity) {
+case 'severe':
+  recommendation = treatmentData.recommendation_severe;
+  break;
+case 'moderate':
+  recommendation = treatmentData.recommendation_moderate;
+  break;
+case 'mild':
+default:
+  recommendation = treatmentData.recommendation_mild;
+  break;
+}
+
+return NextResponse.json({
+  recommendation,
+  condition: Array.isArray(treatmentData.conditions)
+    ? treatmentData.conditions[0]?.name || 'Unknown'
+    : treatmentData.conditions?.name || 'Unknown',
+  drug: Array.isArray(treatmentData.drugs)
+    ? treatmentData.drugs[0]?.name || 'Unknown'
+    : treatmentData.drugs?.name || 'Unknown',
+});
+
+
+    
+    
   } catch (error) {
     console.error('Inference engine error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
