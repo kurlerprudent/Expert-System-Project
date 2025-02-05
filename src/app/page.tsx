@@ -91,13 +91,19 @@ const HomePage: React.FC = () => {
 
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-300 py-6">
-          <div className="container mx-auto px-4 text-center">
-            <p className="text-sm">&copy; {new Date().getFullYear()} Pharmacy Medication Recommendation Expert System. All rights reserved.</p>
-            <p className="mt-2 text-xs">
-              Developed by Obed Sarkodie, Ninsin Akua Abigail, Owusu Emmanuel Takyi, Kelvin Kweku Siaw Ashong, and Ebenezer Ofori Acquah.
-            </p>
-          </div>
-        </footer>
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm">&copy; {new Date().getFullYear()} Pharmacy Medication Recommendation Expert System. All rights reserved.</p>
+          <p className="mt-2 text-xs">
+            Developed by Obed Sarkodie, Ninsin Akua Abigail, Owusu Emmanuel Takyi, Kelvin Kweku Siaw Ashong, and Ebenezer Ofori Acquah.
+          </p>
+          {/* Help Link */}
+          <p className="mt-4">
+            <Link href="/help" legacyBehavior>
+              <a className="text-teal-400 hover:underline">Visit our Help page</a>
+            </Link>
+          </p>
+        </div>
+      </footer>
     </>
   );
 };

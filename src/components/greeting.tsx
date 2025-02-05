@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 // GreetingStep.tsx
 import { motion } from 'framer-motion';
 
